@@ -26,9 +26,20 @@ class HttpClient implements HttpClientInterface, EventManagerAwareInterface
      */
     protected $headers = array();
 
-    private $lastResponse;
-    private $lastRequest;
 
+    /**
+     * @var Response
+     */
+    private $response;
+
+    /**
+     * @var Request
+     */
+    private $request;
+
+    /**
+     * @var EventManager
+     */
     protected $events;
 
     /**
@@ -93,13 +104,14 @@ class HttpClient implements HttpClientInterface, EventManagerAwareInterface
     {
         $path = trim($this->options['base_url'].$path, '/');
 
-        $request = $this->createRequest($httpMethod, $path);
+        $request = $this->getRequest($httpMethod, $path);
         $request->addHeaders($headers);
         $request->setContent(json_encode($parameters));
 
         $this->getEventManager()->trigger('pre.send', $request);
 
-        $response = new Response();
+        $response = $this->getResponse();
+
         try {
             $this->client->send($request, $response);
         } catch (\LogicException $e) {
@@ -110,8 +122,6 @@ class HttpClient implements HttpClientInterface, EventManagerAwareInterface
 
         $this->getEventManager()->trigger('post.send', $request);
 
-        $this->lastRequest  = $request;
-        $this->lastResponse = $response;
 
         return $response;
     }
@@ -124,7 +134,8 @@ class HttpClient implements HttpClientInterface, EventManagerAwareInterface
      */
     private function createRequest($httpMethod, $url)
     {
-        $request = new Request($httpMethod);
+        $sm = $this->getServiceManager('HdHttpClient\Request');
+        $request->setMethod($httpMethod);
         $request->setHeaders($this->headers);
         $request->fromUrl($url);
 
@@ -149,14 +160,44 @@ class HttpClient implements HttpClientInterface, EventManagerAwareInterface
         );
     }
 
-    public function getLastResponse()
+    /**
+     * Get Response
+     *
+     * @return response
+     */
+    public function getResponse()
     {
-        return $this->lastResponse;
+        return $this->response;
     }
 
-    public function getLastRequest()
+    /**
+     * Set Response
+     *
+     * @param response
+     */
+    public function setResponse($response)
     {
-        return $this->lastRequest;
+        $this->response = $response;
+    }
+
+    /**
+     * Get Request
+     *
+     * @return request
+     */
+    public function getRequest()
+    {
+        return $this->request;
+    }
+
+    /**
+     * Set Request
+     *
+     * @param request
+     */
+    public function setRequest($request)
+    {
+        $this->request = $request;
     }
 
     /**
